@@ -1,6 +1,7 @@
 #!/bin/sh
 
 set -u
+set -e
 ##################################################################
 urlencode() (
     i=1
@@ -31,7 +32,13 @@ sh -c "git config --global core.askPass /cred-helper.sh"
 sh -c "git config --global credential.helper cache"
 sh -c "git remote add mirror $*"
 sh -c "echo pushing to $branch branch at $(git remote get-url --push mirror)"
-sh -c "git push mirror -f $branch"
+git_status=$(sh -c "git push mirror -f $branch")
+echo "$git_status"
+
+if [ "$git_status" = "Everything up-to-date" ]
+then
+   curl --header -X POST "PRIVATE-TOKEN: $GITLAB_PASSWORD" --silent "https://${GITLAB_HOSTNAME}/api/v4/projects/${GITLAB_PROJECT_ID}/trigger/pipeline"
+fi
 
 sleep $POLL_TIMEOUT
 
